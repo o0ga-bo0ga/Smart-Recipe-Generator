@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 from langchain_groq import ChatGroq
 from langchain_pinecone import PineconeVectorStore
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface.embeddings import HuggingFaceInferenceAPIEmbeddings
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableParallel, RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
@@ -16,10 +16,14 @@ if not os.environ.get("PINECONE_API_KEY"):
     raise ValueError("PINECONE_API_KEY is not set in environment variables.")
 if not os.environ.get("GROQ_API_KEY"):
     raise ValueError("GROQ_API_KEY is not set in environment variables.")
+if not os.environ.get("HUGGING_FACE_TOKEN"):
+    raise ValueError("HUGGING_FACE_TOKEN is not set in environment variables.")
 
-# 2. Initialize the Embedding Model
-# IMPORTANT: Use the exact same model you used in your notebook.
-embeddings = HuggingFaceEmbeddings(
+# 2. Initialize the Embedding Model via API
+# This now uses the Hugging Face API instead of a local model, solving the size issue.
+# IMPORTANT: It uses the same model you used to upload your data.
+embeddings = HuggingFaceInferenceAPIEmbeddings(
+    api_key=os.environ.get("HUGGING_FACE_TOKEN"),
     model_name="sentence-transformers/all-roberta-large-v1"
 )
 
@@ -34,8 +38,6 @@ vectorstore = PineconeVectorStore.from_existing_index(
 retriever = vectorstore.as_retriever()
 
 # 5. Create the RAG Prompt Template
-# --- MODIFIED PROMPT ---
-# This new template explicitly asks for the format your parser needs.
 template = """
 You are an expert recipe assistant. Use the following retrieved recipes as context to answer the user's question.
 Generate the number of recipes requested by the user.
@@ -73,3 +75,4 @@ def generate_recipes(query: str) -> str:
     """
     print(f"Executing RAG query: {query}")
     return rag_chain.invoke(query)
+
