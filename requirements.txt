@@ -4,7 +4,6 @@ langchain-groq
 langchain-pinecone
 langchain-community
 pinecone-client
-sentence-transformers
 pandas
 Pillow
 requests
