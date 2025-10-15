@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 from langchain_groq import ChatGroq
 from langchain_pinecone import PineconeVectorStore
-from langchain_huggingface.embeddings import HuggingFaceInferenceAPIEmbeddings
+from langchain_huggingface.embeddings import HuggingFaceEndpointEmbeddings
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableParallel, RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
@@ -20,11 +20,10 @@ if not os.environ.get("HUGGING_FACE_TOKEN"):
     raise ValueError("HUGGING_FACE_TOKEN is not set in environment variables.")
 
 # 2. Initialize the Embedding Model via API
-# This now uses the Hugging Face API instead of a local model, solving the size issue.
-# IMPORTANT: It uses the same model you used to upload your data.
-embeddings = HuggingFaceInferenceAPIEmbeddings(
-    api_key=os.environ.get("HUGGING_FACE_TOKEN"),
-    model_name="sentence-transformers/all-roberta-large-v1"
+# This now uses the corrected class name for the Hugging Face API.
+embeddings = HuggingFaceEndpointEmbeddings(
+    model="sentence-transformers/all-roberta-large-v1",
+    huggingfacehub_api_token=os.environ.get("HUGGING_FACE_TOKEN"),
 )
 
 # 3. Initialize the Groq LLM
