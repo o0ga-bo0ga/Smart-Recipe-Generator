@@ -6,8 +6,15 @@ from db_service import get_db, close_db, timestamp_to_date
 from image_service import process_image
 from recipe_parser import parse_recipes
 
-# Flask will automatically find 'templates' and 'static' folders in the same directory
-app = Flask(__name__)
+# --- MODIFICATION START ---
+# Explicitly define the paths to the templates and static folders
+# This ensures Flask can find them in Vercel's serverless environment.
+app = Flask(
+    __name__,
+    static_folder='static',
+    template_folder='templates'
+)
+# --- MODIFICATION END ---
 
 load_dotenv()
 
@@ -25,7 +32,6 @@ app.secret_key = os.environ.get('SECRET_KEY', 'a-default-fallback-key-if-not-set
 @app.teardown_appcontext
 def teardown_db(exception):
     close_db(exception)
-
 
 # Register custom Jinja2 filter
 app.jinja_env.filters['timestamp_to_date'] = timestamp_to_date
@@ -62,7 +68,6 @@ def home():
             if not ingredients:
                 error = "No ingredients detected. Please upload a photo or enter text."
             else:
-                # (Your query generation logic remains the same)
                 query = f"Generate exactly 3 unique recipes using these ingredients: {ingredients}. For each recipe, provide a clear, descriptive title prefixed with 'Title: ', followed by 'Difficulty: ' (easy, medium, or hard), 'Cooking time: ' (in minutes or range, e.g., 25-30 minutes), detailed instructions, nutritional information (calories, protein, carbs, fats), and substitution suggestions, each on a new line. "
                 if dietary: query += f"Dietary preferences: {dietary}. "
                 if difficulty: query += f"Prefer recipes with a difficulty of {difficulty}. "
