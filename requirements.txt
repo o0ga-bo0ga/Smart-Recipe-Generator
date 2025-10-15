@@ -9,4 +9,3 @@ pandas
 Pillow
 sentence-transformers
 scikit-learn
-serverless-wsgi
