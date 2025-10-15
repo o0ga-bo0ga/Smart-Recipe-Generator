@@ -1,19 +1,75 @@
-from langchain_groq import ChatGroq
-from dotenv import load_dotenv
 import os
-import pickle
+from dotenv import load_dotenv
+from langchain_groq import ChatGroq
+from langchain_pinecone import PineconeVectorStore
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnableParallel, RunnablePassthrough
+from langchain_core.output_parsers import StrOutputParser
 
+# 1. Initialization
 load_dotenv()
+INDEX_NAME = "recipe-index" # Your Pinecone index name
 
-# Load index from .pkl (once)
-with open('./data/index.pkl', 'rb') as f:
-    index = pickle.load(f)
+# Check for necessary API keys from environment variables
+if not os.environ.get("PINECONE_API_KEY"):
+    raise ValueError("PINECONE_API_KEY is not set in environment variables.")
+if not os.environ.get("GROQ_API_KEY"):
+    raise ValueError("GROQ_API_KEY is not set in environment variables.")
 
-# Groq LLM
-groq_llm = ChatGroq(
-    model="llama-3.1-8b-instant",
-    groq_api_key=os.environ["GROQ_API_KEY"]
+# 2. Initialize the Embedding Model
+# IMPORTANT: Use the exact same model you used in your notebook.
+embeddings = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-roberta-large-v1"
 )
 
-def generate_recipes(query):
-    return index.query(query, llm=groq_llm)
+# 3. Initialize the Groq LLM
+llm = ChatGroq(model="llama-3.1-8b-instant")
+
+# 4. Connect to Your Existing Pinecone Index and Create a Retriever
+vectorstore = PineconeVectorStore.from_existing_index(
+    index_name=INDEX_NAME, 
+    embedding=embeddings
+)
+retriever = vectorstore.as_retriever()
+
+# 5. Create the RAG Prompt Template
+# --- MODIFIED PROMPT ---
+# This new template explicitly asks for the format your parser needs.
+template = """
+You are an expert recipe assistant. Use the following retrieved recipes as context to answer the user's question.
+Generate the number of recipes requested by the user.
+
+For each recipe, you MUST provide the following information, each on a new line:
+- Start with 'Title: ' followed by a creative and descriptive title.
+- Then, 'Difficulty: ' (easy, medium, or hard).
+- Then, 'Cooking time: ' (in minutes or a range, e.g., 25-30 minutes).
+- Then, provide detailed instructions, nutritional information, and substitution suggestions.
+
+Context from retrieved recipes:
+{context}
+
+User's Question:
+{question}
+
+Answer:
+"""
+prompt = ChatPromptTemplate.from_template(template)
+
+# 6. Build the RAG Chain
+rag_chain = (
+    RunnableParallel(
+        context=(retriever),
+        question=RunnablePassthrough(),
+    )
+    | prompt
+    | llm
+    | StrOutputParser()
+)
+
+def generate_recipes(query: str) -> str:
+    """
+    Queries the RAG chain to generate recipes based on user input.
+    """
+    print(f"Executing RAG query: {query}")
+    return rag_chain.invoke(query)
