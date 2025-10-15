@@ -6,7 +6,18 @@ from db_service import get_db, close_db, timestamp_to_date
 from image_service import process_image
 from recipe_parser import parse_recipes
 
-app = Flask(__name__)
+# --- MODIFICATION START ---
+# Define the absolute paths for the templates and static folders to ensure Flask finds them
+# from within the Netlify functions directory.
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+template_folder = os.path.join(project_root, "templates")
+static_folder = os.path.join(project_root, "static")
+
+# Initialize the Flask app with the correct paths
+app = Flask(__name__, template_folder=template_folder, static_folder=static_folder)
+# --- MODIFICATION END ---
+
+
 load_dotenv()
 
 # Config
@@ -77,7 +88,7 @@ def home():
                     except Exception as e:
                         if attempt == max_attempts - 1:
                             error = f"Query failed after {max_attempts} attempts: {str(e)}"
-                        time.sleep(1)
+                        # time.sleep(1) # Consider removing sleep from serverless functions
 
             recipes = parse_recipes(response_text) if response_text else []
             session['recipes'] = recipes  # Store recipes in session
@@ -92,7 +103,8 @@ def home():
             rating = request.form.get('rating', '')
             if recipe and rating:
                 try:
-                    c.execute("INSERT INTO favorites (recipe_text, rating, timestamp) VALUES (?, ?, ?)", 
+                    import time
+                    c.execute("INSERT INTO favorites (recipe_text, rating, timestamp) VALUES (?, ?, ?)",
                             (recipe, int(rating), int(time.time())))
                     db.commit()
                 except Exception as e:
@@ -117,7 +129,7 @@ def query_endpoint():
         return jsonify({'error': str(e)}), 500
 
 # Import the handler from the serverless framework
-from serverless_wsgi import handle 
+from serverless_wsgi import handle
 
 def handler(event, context):
   return handle(event, context, app)
