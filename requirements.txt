@@ -1,11 +1,6 @@
-# requirements.txt
 flask
 python-dotenv
-ultralytics
-torch              #<-- Fixed
-torchvision        #<-- Fixed
 langchain-groq
 pandas
 Pillow
-sentence-transformers
-scikit-learn
+requests
