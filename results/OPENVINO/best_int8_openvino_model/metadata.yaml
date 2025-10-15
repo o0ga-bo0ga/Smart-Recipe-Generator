@@ -1,0 +1,93 @@
+description: Ultralytics YOLO11n model trained on /kaggle/input/food-ingredient-detection-dataset/data.yaml
+author: Ultralytics
+date: '2024-11-12T09:16:45.488665'
+version: 8.3.29
+license: AGPL-3.0 License (https://ultralytics.com/license)
+docs: https://docs.ultralytics.com
+stride: 32
+task: detect
+batch: 1
+imgsz:
+- 640
+- 640
+names:
+  0: almond
+  1: apple
+  2: asparagus
+  3: avocado
+  4: bacon
+  5: banana
+  6: bean
+  7: bean sprout
+  8: beef
+  9: beetroot
+  10: bell pepper
+  11: blackberry
+  12: blueberry
+  13: bok choy
+  14: bread
+  15: brie cheese
+  16: broccoli
+  17: cabbage
+  18: carrot
+  19: cauliflower
+  20: cheddar cheese
+  21: cheese
+  22: cherry
+  23: chicken breast
+  24: chicken wing
+  25: chilli
+  26: chocolate
+  27: corn
+  28: cucumber
+  29: dry grape
+  30: durian
+  31: egg
+  32: eggplant
+  33: fish
+  34: garlic
+  35: ginger
+  36: grape
+  37: green grape
+  38: green pepper
+  39: guava
+  40: jalepeno
+  41: jam
+  42: kiwi
+  43: lemon
+  44: mango
+  45: mangoteen
+  46: meat ball
+  47: milk
+  48: mozarella cheese
+  49: mushroom
+  50: mussel
+  51: noodle
+  52: onion
+  53: orange
+  54: oyster
+  55: papaya
+  56: parmesan cheese
+  57: pasta
+  58: pineapple
+  59: pomegranate
+  60: pork
+  61: pork belly
+  62: pork rib
+  63: potato
+  64: pumpkin
+  65: raspberry
+  66: salad
+  67: salmon
+  68: scallop
+  69: shrimp
+  70: spring onion
+  71: starfruit
+  72: stilton cheese
+  73: strawberry
+  74: sweet potato
+  75: tomato
+  76: tuna
+  77: vegetable
+  78: watermelon
+  79: yogurt

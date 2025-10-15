@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Recipe Generator</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+  <style>
+    body {
+      background-color: #1a1a1a;
+      color: #e0e0e0;
+    }
+    .loading { animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .recipe-card {
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: linear-gradient(135deg, #2c2c2c, #3c3c3c);
+      border: none;
+      border-radius: 15px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      height: 150px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+      color: #ffffff;
+    }
+    .recipe-card:hover {
+      transform: translateY(-5px) scale(1.05);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5);
+      background: linear-gradient(135deg, #3c3c3c, #4c4c4c);
+    }
+    .card-header {
+      background: transparent;
+      border: none;
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #ff7e5f;
+      margin-bottom: 5px;
+    }
+    .card-info {
+      text-align: center;
+      font-size: 0.9rem;
+      color: #b0b0b0;
+    }
+    .modal-content {
+      background-color: #2c2c2c;
+      border-radius: 15px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    }
+    .modal-header {
+      background: linear-gradient(135deg, #ff7e5f, #feb47b);
+      color: #ffffff;
+      border-bottom: none;
+    }
+    .modal-body pre {
+      max-height: 400px;
+      overflow-y: auto;
+      background: #3c3c3c;
+      padding: 15px;
+      border-radius: 10px;
+      color: #e0e0e0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      word-break: break-word;
+      hyphens: auto;
+    }
+    .modal-dialog {
+      max-width: 1000px;
+    }
+    @media (max-width: 768px) {
+      .modal-dialog {
+        max-width: 90%;
+      }
+      .row > div { margin-bottom: 15px; }
+    }
+    @media (max-width: 576px) {
+      .modal-dialog {
+        max-width: 100%;
+      }
+    }
+    .alert {
+      background-color: #333;
+      color: #e0e0e0;
+      border: 1px solid #555;
+    }
+    .alert .btn-close {
+      filter: invert(1);
+    }
+    .form-control, .form-select {
+      background-color: #3c3c3c;
+      color: #e0e0e0;
+      border: 1px solid #555;
+    }
+    .form-control:focus, .form-select:focus {
+      background-color: #4c4c4c;
+      color: #ffffff;
+      border-color: #ff7e5f;
+      box-shadow: 0 0 5px rgba(255, 126, 95, 0.5);
+    }
+    .form-control::placeholder {
+      color: #808080;
+      opacity: 1;
+    }
+    .btn-primary {
+      background-color: #ff7e5f;
+      border-color: #ff7e5f;
+      color: #ffffff;
+    }
+    .btn-primary:hover {
+      background-color: #feb47b;
+      border-color: #feb47b;
+    }
+    .btn-success {
+      background-color: #28a745;
+      border-color: #28a745;
+      color: #ffffff;
+    }
+    .btn-success:hover {
+      background-color: #218838;
+      border-color: #218838;
+    }
+    .input-group-text {
+      background-color: #3c3c3c;
+      color: #e0e0e0;
+      border: 1px solid #555;
+    }
+    h1, h2 {
+      color: #ff7e5f;
+    }
+    .invalid-feedback {
+      color: #dc3545;
+    }
+  </style>
+</head>
+<body>
+  <div class="container my-5">
+    <h1 class="text-center mb-4">Smart Recipe Generator</h1>
+    
+    {% if error %}
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        {{ error }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endif %}
+    
+    <form method="POST" enctype="multipart/form-data" id="recipeForm" class="needs-validation" novalidate>
+      <input type="hidden" name="action" value="generate">
+      
+      <div class="mb-3">
+        <label for="ingredients" class="form-label">Ingredients (comma-separated, optional if uploading photo)</label>
+        <input type="text" class="form-control" id="ingredients" name="ingredients" placeholder="e.g., chicken breast, broccoli, garlic">
+        <div class="invalid-feedback">Please enter ingredients or upload a photo.</div>
+      </div>
+      
+      <div class="mb-3">
+        <label for="photo" class="form-label">Upload Photo of Ingredients</label>
+        <input type="file" class="form-control" id="photo" name="photo" accept=".png,.jpg,.jpeg">
+      </div>
+      
+      <div class="mb-3">
+        <label for="dietary" class="form-label">Dietary Preferences (hold Ctrl/Cmd for multiple)</label>
+        <select class="form-select" id="dietary" name="dietary" multiple>
+          <option value="vegetarian">Vegetarian</option>
+          <option value="vegan">Vegan</option>
+          <option value="gluten-free">Gluten-Free</option>
+          <option value="dairy-free">Dairy-Free</option>
+          <option value="keto">Keto</option>
+        </select>
+      </div>
+      
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <label for="difficulty" class="form-label">Difficulty</label>
+          <select class="form-select" id="difficulty" name="difficulty">
+            <option value="">Any</option>
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </div>
+        <div class="col-md-4 mb-3">
+          <label for="time" class="form-label">Cooking Time</label>
+          <select class="form-select" id="time" name="time">
+            <option value="">Any</option>
+            <option value="<30 minutes"><30 minutes</option>
+            <option value="30-60 minutes">30-60 minutes</option>
+            <option value=">60 minutes">>60 minutes</option>
+          </select>
+        </div>
+        <div class="col-md-4 mb-3">
+          <label for="servings" class="form-label">Servings</label>
+          <input type="number" class="form-control" id="servings" name="servings" value="4" min="1" required>
+          <div class="invalid-feedback">Please enter a valid number of servings.</div>
+        </div>
+      </div>
+      
+      <button type="submit" class="btn btn-primary w-100" {% if loading %}disabled{% endif %}>
+        {% if loading %}<span class="loading"></span> Generating...{% else %}Generate Recipes{% endif %}
+      </button>
+    </form>
+    
+    {% if response %}
+      <div class="mt-4">
+        <h2>Generated Recipes</h2>
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+          {% for recipe in response %}
+            <div class="col">
+              <div class="card recipe-card h-100" data-bs-toggle="modal" data-bs-target="#recipeModal{{ loop.index0 }}">
+                <div class="card-header">
+                  {{ recipe.title }}
+                </div>
+                <div class="card-info">
+                  {% if recipe.difficulty %}Difficulty: {{ recipe.difficulty }}{% endif %}
+                  {% if recipe.time %} | Time: {{ recipe.time }}{% endif %}
+                </div>
+                <div class="card-body">
+                  <!-- Empty body, details shown in modal -->
+                </div>
+              </div>
+
+              <!-- Modal for detailed view -->
+              <div class="modal fade" id="recipeModal{{ loop.index0 }}" tabindex="-1" aria-labelledby="recipeModalLabel{{ loop.index0 }}" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title" id="recipeModalLabel{{ loop.index0 }}">{{ recipe.title }}</h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                      <pre>{{ recipe.details | join('\n') }}</pre>
+                    </div>
+                    <div class="modal-footer">
+                      <form method="POST">
+                        <input type="hidden" name="action" value="save">
+                        <input type="hidden" name="recipe" value="{{ recipe.details | join('\n') | e }}">
+                        <div class="input-group">
+                          <label class="input-group-text">Rate (1-5)</label>
+                          <input type="number" class="form-control" name="rating" min="1" max="5" required>
+                          <button type="submit" class="btn btn-success">Save as Favorite</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+    
+    <h2 class="mt-5">Favorites</h2>
+    {% if favorites %}
+      {% for fav in favorites %}
+        <div class="card mb-3">
+          <div class="card-header">Rating: {{ fav[2] }} (Saved: {{ fav[3] | timestamp_to_date }})</div>
+          <div class="card-body">
+            <pre class="mb-0">{{ fav[1] }}</pre>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p>No favorites saved yet.</p>
+    {% endif %}
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdlZxGkv/9cf2Q==" crossorigin="anonymous"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('DOM fully loaded');
+      if (typeof bootstrap === 'undefined') {
+        console.error('Bootstrap is not loaded');
+      } else {
+        console.log('Bootstrap is loaded');
+      }
+    });
+
+    // Custom validation to allow either ingredients text OR photo upload
+    (function () {
+      'use strict'
+      var form = document.getElementById('recipeForm');
+      var ingredientsInput = document.getElementById('ingredients');
+      var photoInput = document.getElementById('photo');
+      
+      form.addEventListener('submit', function (event) {
+        // Check if either ingredients text or photo is provided
+        var hasIngredients = ingredientsInput.value.trim() !== '';
+        var hasPhoto = photoInput.files.length > 0;
+        
+        if (!hasIngredients && !hasPhoto) {
+          event.preventDefault();
+          event.stopPropagation();
+          ingredientsInput.setCustomValidity('Please enter ingredients or upload a photo.');
+        } else {
+          ingredientsInput.setCustomValidity('');
+        }
+        
+        // Check other required fields
+        if (!form.checkValidity()) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        
+        form.classList.add('was-validated');
+      }, false);
+      
+      // Clear custom validity when user types or uploads
+      ingredientsInput.addEventListener('input', function() {
+        ingredientsInput.setCustomValidity('');
+      });
+      
+      photoInput.addEventListener('change', function() {
+        ingredientsInput.setCustomValidity('');
+      });
+    })();
+  </script>
+</body>
+</html>
