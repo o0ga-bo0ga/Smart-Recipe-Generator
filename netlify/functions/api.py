@@ -116,5 +116,8 @@ def query_endpoint():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-if __name__ == '__main__':
-    app.run(debug=True)
+# Import the handler from the serverless framework
+from serverless_wsgi import handle 
+
+def handler(event, context):
+  return handle(event, context, app)
