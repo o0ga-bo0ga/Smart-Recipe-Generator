@@ -134,3 +134,6 @@ def query_endpoint():
 def handler(event, context):
   # MODIFICATION: Call handle from the imported module
   return serverless_wsgi.handle(event, context, app)
+
+if __name__ == '__main__':
+    app.run(debug=True)
