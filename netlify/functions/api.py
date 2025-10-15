@@ -1,21 +1,29 @@
+# --- ADD THIS BLOCK AT THE VERY TOP ---
+import sys
+import os
+
+# Get the absolute path of the project's root directory
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+# Add the project root to the Python path
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+# --- END OF BLOCK ---
+
+
 from flask import Flask, request, render_template, jsonify, g, redirect, url_for, session
 from dotenv import load_dotenv
-import os
 from llm_service import generate_recipes
 from db_service import get_db, close_db, timestamp_to_date
 from image_service import process_image
 from recipe_parser import parse_recipes
+import serverless_wsgi  # <-- MODIFICATION: Import the whole module
 
-# --- MODIFICATION START ---
-# Define the absolute paths for the templates and static folders to ensure Flask finds them
-# from within the Netlify functions directory.
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+# Define the absolute paths for the templates and static folders
 template_folder = os.path.join(project_root, "templates")
 static_folder = os.path.join(project_root, "static")
 
 # Initialize the Flask app with the correct paths
 app = Flask(__name__, template_folder=template_folder, static_folder=static_folder)
-# --- MODIFICATION END ---
 
 
 load_dotenv()
@@ -58,7 +66,7 @@ def home():
             recognized_ingredients = []
             if 'photo' in request.files:
                 file = request.files['photo']
-                if file and file.filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']:
+                if file and file.filename and '.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']:
                     recognized_ingredients = process_image(file, app.config['UPLOAD_FOLDER'])
 
             ingredients = ingredients_text or ', '.join(recognized_ingredients)
@@ -82,21 +90,17 @@ def home():
                 for attempt in range(max_attempts):
                     try:
                         response_text = generate_recipes(query)
-                        print(f"Query: {query}")  # Log the query
-                        print(f"Raw response: {response_text}")  # Debug output
                         break
                     except Exception as e:
                         if attempt == max_attempts - 1:
                             error = f"Query failed after {max_attempts} attempts: {str(e)}"
-                        # time.sleep(1) # Consider removing sleep from serverless functions
 
             recipes = parse_recipes(response_text) if response_text else []
-            session['recipes'] = recipes  # Store recipes in session
-            print(f"Parsed recipes: {recipes}")  # Debug parsed output
+            session['recipes'] = recipes
             if error:
-                session.pop('recipes', None)  # Clear recipes on error
+                session.pop('recipes', None)
                 return render_template('index.html', response=None, error=error, loading=False, favorites=favorites)
-            return redirect(url_for('home'))  # Redirect after successful generation
+            return redirect(url_for('home'))
 
         elif action == 'save':
             recipe = request.form.get('recipe', '')
@@ -109,9 +113,8 @@ def home():
                     db.commit()
                 except Exception as e:
                     error = f"Save error: {str(e)}"
-            return redirect(url_for('home'))  # Redirect after save
+            return redirect(url_for('home'))
 
-    # Clear recipes from session after displaying
     session.pop('recipes', None)
     return render_template('index.html', response=recipes, error=error, loading=loading, favorites=favorites)
 
@@ -128,8 +131,6 @@ def query_endpoint():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Import the handler from the serverless framework
-from serverless_wsgi import handle
-
 def handler(event, context):
-  return handle(event, context, app)
+  # MODIFICATION: Call handle from the imported module
+  return serverless_wsgi.handle(event, context, app)
